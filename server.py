@@ -12,14 +12,15 @@ from flask import Flask, request, send_from_directory, jsonify, make_response
 
 app = Flask(__name__, static_folder='.')
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'scores.json')
-APP_PASSWORD = 'gpdz@123'  # 网站访问密码
+APP_PASSWORD='gpdz@123'  # 网站访问密码
+APP_USERNAME='1'         # 用户名
 
 # ===== 密码验证装饰器 =====
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         auth = request.authorization
-        if not auth or auth.password != APP_PASSWORD:
+        if not auth or auth.username != APP_USERNAME or auth.password != APP_PASSWORD:
             response = make_response('Authentication required', 401)
             response.headers['WWW-Authenticate'] = 'Basic realm="Protected"'
             return response
