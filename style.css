@@ -1,0 +1,990 @@
+/* ===== Reset & Base ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: #0f1923;
+  color: #e0e0e0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 40px 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, #1a237e, #283593);
+  padding: 16px 20px 12px;
+  text-align: center;
+  border-bottom: 3px solid #ffd740;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 2px;
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  background: #15202e;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #2a3a4a;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 14px 0;
+  border: none;
+  background: transparent;
+  color: #7a8a9a;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  color: #ffd740;
+  border-bottom-color: #ffd740;
+}
+
+.tab-btn:active {
+  background: rgba(255, 215, 64, 0.1);
+}
+
+/* ===== Tab Content ===== */
+.tab-content {
+  display: none;
+  padding: 16px;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* ===== Current Info Cards ===== */
+.current-info {
+  margin-bottom: 10px;
+}
+
+/* ===== 本局积分总览（大数字） ===== */
+.game-total-bar {
+  background: linear-gradient(135deg, #1a2a3a, #1e3048);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #2a3a4a;
+}
+
+.game-total-header {
+  font-size: 13px;
+  color: #7a8a9a;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.game-total-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.game-total-empty {
+  font-size: 13px;
+  color: #5a6a7a;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.game-total-card {
+  flex: 1;
+  min-width: 70px;
+  background: #15202e;
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+  border: 1.5px solid #2a3a4a;
+  transition: all 0.2s;
+}
+
+.game-total-card.card-pos {
+  border-color: rgba(76, 175, 80, 0.3);
+  background: rgba(76, 175, 80, 0.06);
+}
+
+.game-total-card.card-neg {
+  border-color: rgba(244, 67, 54, 0.3);
+  background: rgba(244, 67, 54, 0.06);
+}
+
+.game-total-name {
+  font-size: 12px;
+  color: #90a0b0;
+  margin-bottom: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-total-score {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  line-height: 1.2;
+}
+
+.info-card {
+  background: #1a2a3a;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dealer-card {
+  border: 2px solid #ffd740;
+  background: linear-gradient(135deg, #1a2a3a, #253545);
+}
+
+.info-label {
+  font-size: 14px;
+  color: #90a0b0;
+  white-space: nowrap;
+}
+
+.info-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffd740;
+  flex: 1;
+}
+
+.players-list-display {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.player-chip {
+  background: #253545;
+  color: #c0d0e0;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  border: 1px solid #3a4a5a;
+}
+
+/* ===== Round Selector ===== */
+.round-selector {
+  background: #1a2a3a;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.round-selector label {
+  font-size: 14px;
+  color: #90a0b0;
+}
+
+.round-selector select {
+  background: #253545;
+  color: #e0e0e0;
+  border: 1px solid #3a4a5a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+/* ===== Input Section ===== */
+.input-section {
+  background: #1a2a3a;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.input-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.input-table thead th {
+  padding: 8px;
+  font-size: 13px;
+  color: #7a8a9a;
+  text-align: left;
+  border-bottom: 1px solid #2a3a4a;
+}
+
+.input-table thead th:last-child {
+  text-align: right;
+}
+
+.input-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.input-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.input-table td {
+  padding: 12px 8px;
+}
+
+.input-table .player-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.input-table input[type="number"] {
+  width: 100%;
+  background: #253545;
+  color: #e0e0e0;
+  border: 1px solid #3a4a5a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  text-align: right;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.input-table input[type="number"]::-webkit-outer-spin-button,
+.input-table input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-table input[type="number"]:focus {
+  border-color: #ffd740;
+  box-shadow: 0 0 0 2px rgba(255, 215, 64, 0.15);
+}
+
+.dealer-row .player-label {
+  color: #ffd740;
+}
+
+.dealer-row {
+  background: rgba(255, 215, 64, 0.05);
+}
+
+.dealer-auto-score {
+  text-align: right;
+  padding: 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.auto-score-value {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+}
+
+.auto-score-label {
+  font-size: 11px;
+  color: #5a6a7a;
+  background: rgba(90, 106, 122, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ===== Stepper Input (可调步长加减器) ===== */
+.player-score-cell {
+  padding: 12px 8px !important;
+}
+
+.score-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.score-player-header .player-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.score-value {
+  font-size: 24px;
+  font-weight: 800;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* 步长选择器 */
+.step-selector {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.step-label {
+  font-size: 11px;
+  color: #7a8a9a;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.step-btn {
+  width: 36px;
+  height: 30px;
+  border: 1.5px solid #3a4a5a;
+  border-radius: 7px;
+  background: #1e2e3e;
+  color: #90a0b0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.step-btn:active {
+  transform: scale(0.92);
+  background: #2a3a4a;
+}
+
+.step-btn.step-active {
+  background: rgba(255, 215, 64, 0.2);
+  color: #ffd740;
+  border-color: #ffd740;
+  box-shadow: 0 0 8px rgba(255, 215, 64, 0.15);
+}
+
+/* 加减按钮 */
+.stepper-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stepper-btn {
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.12s;
+  letter-spacing: 1px;
+}
+
+.stepper-btn:active {
+  transform: scale(0.94);
+}
+
+.stepper-minus {
+  background: rgba(244, 67, 54, 0.15);
+  color: #ef5350;
+  border: 2px solid rgba(244, 67, 54, 0.3);
+}
+
+.stepper-minus:active {
+  background: rgba(244, 67, 54, 0.4);
+}
+
+.stepper-plus {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+  border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.stepper-plus:active {
+  background: rgba(76, 175, 80, 0.4);
+}
+
+/* 归零按钮 */
+.stepper-reset-area {
+  text-align: center;
+}
+
+.stepper-reset {
+  padding: 6px 24px;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 8px;
+  background: rgba(100, 181, 246, 0.08);
+  color: #64b5f6;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.stepper-reset:active {
+  background: rgba(100, 181, 246, 0.3);
+  transform: scale(0.94);
+}
+
+/* ===== Positive / Negative Score Colors (global) ===== */
+.pos-score {
+  color: #81c784;
+}
+
+.neg-score {
+  color: #ef5350;
+}
+
+.sum-check {
+  text-align: center;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  background: #253545;
+  transition: all 0.3s;
+}
+
+.sum-check.valid {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.sum-check.invalid {
+  background: rgba(244, 67, 54, 0.15);
+  color: #ef5350;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* ===== Rounds List ===== */
+.rounds-section {
+  margin-top: 8px;
+}
+
+.rounds-section h3 {
+  font-size: 15px;
+  color: #90a0b0;
+  margin-bottom: 10px;
+}
+
+.rounds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.round-item {
+  background: #1a2a3a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #2a3a4a;
+}
+
+.round-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.round-item-round {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffd740;
+}
+
+.round-item-scores {
+  font-size: 12px;
+  color: #7a8a9a;
+}
+
+.round-item-delete {
+  background: none;
+  border: none;
+  color: #ef5350;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.round-item-delete:active {
+  background: rgba(239, 83, 80, 0.15);
+}
+
+/* ===== Buttons ===== */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-complete {
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  color: #fff;
+}
+
+.btn-complete:disabled {
+  background: #2a3a4a;
+  color: #5a6a7a;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-add {
+  background: linear-gradient(135deg, #1565c0, #1976d2);
+  color: #fff;
+  width: auto;
+  padding: 12px 20px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #b71c1c, #c62828);
+  color: #fff;
+  margin-top: 16px;
+}
+
+/* ===== Players Tab ===== */
+.add-player-section {
+  margin-bottom: 20px;
+}
+
+.add-player-form {
+  display: flex;
+  gap: 10px;
+}
+
+.add-player-form input {
+  flex: 1;
+  background: #1a2a3a;
+  color: #e0e0e0;
+  border: 1px solid #3a4a5a;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  outline: none;
+}
+
+.add-player-form input:focus {
+  border-color: #ffd740;
+}
+
+.add-player-form input::placeholder {
+  color: #5a6a7a;
+}
+
+.player-count {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #7a8a9a;
+}
+
+.players-management ul {
+  list-style: none;
+}
+
+.players-list-ui li {
+  background: #1a2a3a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #2a3a4a;
+}
+
+.player-name-cell {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.badge-dealer {
+  background: rgba(255, 215, 64, 0.2);
+  color: #ffd740;
+  border: 1px solid rgba(255, 215, 64, 0.3);
+}
+
+.badge-player {
+  background: rgba(100, 181, 246, 0.15);
+  color: #64b5f6;
+  border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+.player-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.player-actions button {
+  background: #253545;
+  color: #90a0b0;
+  border: 1px solid #3a4a5a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.player-actions button:active {
+  background: #354555;
+}
+
+.player-actions button.del-btn:active {
+  background: rgba(239, 83, 80, 0.15);
+  color: #ef5350;
+}
+
+/* ===== 已删除玩家 ===== */
+.player-list-sep {
+  list-style: none;
+  padding: 16px 0 6px !important;
+  background: transparent !important;
+  border: none !important;
+  pointer-events: none;
+}
+
+.sep-label {
+  font-size: 12px;
+  color: #5a6a7a;
+  font-weight: 600;
+  padding: 4px 0;
+  border-top: 1px dashed #2a3a4a;
+  padding-top: 12px;
+}
+
+.player-deleted {
+  opacity: 0.55;
+  border-style: dashed !important;
+}
+
+.deleted-name {
+  text-decoration: line-through;
+  color: #7a8a9a;
+}
+
+.badge-deleted {
+  background: rgba(90, 106, 122, 0.15);
+  color: #5a6a7a;
+  border: 1px solid rgba(90, 106, 122, 0.3);
+  font-size: 10px;
+}
+
+.restore-btn {
+  background: rgba(76, 175, 80, 0.12) !important;
+  color: #81c784 !important;
+  border-color: rgba(76, 175, 80, 0.3) !important;
+}
+
+.restore-btn:active {
+  background: rgba(76, 175, 80, 0.35) !important;
+}
+
+/* ===== Summary Tab ===== */
+.tab-content h2 {
+  text-align: center;
+  font-size: 18px;
+  color: #ffd740;
+  margin-bottom: 16px;
+}
+
+/* ===== Section Title (通用) ===== */
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffd740;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.title-icon {
+  font-size: 18px;
+}
+
+/* ===== 积分榜 (Leaderboard) ===== */
+.leaderboard-section,
+.game-detail-section,
+.history-section {
+  margin-bottom: 20px;
+}
+
+.lb-empty {
+  text-align: center;
+  padding: 24px;
+  color: #5a6a7a;
+  font-size: 14px;
+  background: #1a2a3a;
+  border-radius: 12px;
+  border: 1px solid #2a3a4a;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1a2a3a;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid #2a3a4a;
+  transition: all 0.15s;
+}
+
+.lb-item.item-pos {
+  border-color: rgba(76, 175, 80, 0.25);
+  background: rgba(76, 175, 80, 0.04);
+}
+
+.lb-item.item-neg {
+  border-color: rgba(244, 67, 54, 0.25);
+  background: rgba(244, 67, 54, 0.04);
+}
+
+.lb-rank {
+  font-size: 20px;
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.lb-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.lb-score {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* ===== 本局详情 (Game Detail) ===== */
+.current-game-detail {
+  background: #1a2a3a;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid #2a3a4a;
+}
+
+.gd-header {
+  font-size: 13px;
+  color: #7a8a9a;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #2a3a4a;
+}
+
+.gd-header span {
+  color: #ffd740;
+  font-weight: 700;
+}
+
+.gd-round {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.gd-round-label {
+  color: #90a0b0;
+  white-space: nowrap;
+  font-weight: 600;
+  min-width: 54px;
+}
+
+.gd-round-scores {
+  color: #c0d0e0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: baseline;
+}
+
+.gd-sep {
+  color: #3a4a5a;
+  margin: 0 2px;
+}
+
+.gd-total-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1.5px dashed #2a3a4a;
+  font-size: 14px;
+}
+
+.gd-total-label {
+  color: #ffd740;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 54px;
+}
+
+.gd-total-scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: baseline;
+}
+
+.gd-total-score {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.gd-divider {
+  height: 1px;
+  background: #2a3a4a;
+  margin: 12px 0;
+}
+
+.gd-completed-info {
+  text-align: center;
+  color: #5a6a7a;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+/* ===== History ===== */
+.history-section {
+  margin-bottom: 20px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  background: #1a2a3a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid #2a3a4a;
+}
+
+.history-item-header {
+  font-size: 14px;
+  color: #7a8a9a;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2a3a4a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-item-header span {
+  color: #ffd740;
+  font-weight: 700;
+}
+
+.history-item-rows {
+  font-size: 13px;
+  color: #90a0b0;
+  line-height: 1.8;
+}
+
+.history-total-line {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.history-total-line .gd-total-label {
+  font-size: 13px;
+}
+
+/* ===== Responsive tweaks ===== */
+@media (max-width: 360px) {
+  .title {
+    font-size: 19px;
+  }
+
+  .tab-btn {
+    font-size: 13px;
+    padding: 12px 0;
+  }
+
+  .input-table td {
+    padding: 10px 4px;
+  }
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.round-item, .history-item, .players-list-ui li {
+  animation: fadeIn 0.3s ease;
+}

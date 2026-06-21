@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>扑克积分计算器</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <!-- 顶部导航 -->
+  <header class="header">
+    <h1 class="title">扑克积分计算</h1>
+  </header>
+
+  <!-- 标签页切换 -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="score">记分</button>
+    <button class="tab-btn" data-tab="players">玩家</button>
+    <button class="tab-btn" data-tab="summary">统计</button>
+  </div>
+
+  <!-- ========== 记分页 ========== -->
+  <section id="tab-score" class="tab-content active">
+    <!-- 当前庄家和闲家信息 -->
+    <div class="current-info">
+      <div class="info-card dealer-card">
+        <span class="info-label">🎴 庄家</span>
+        <span class="info-name" id="dealer-name">-</span>
+      </div>
+      <div class="info-card players-card">
+        <span class="info-label">闲家</span>
+        <div id="players-list-display" class="players-list-display"></div>
+      </div>
+    </div>
+
+    <!-- 本局积分总览 -->
+    <div class="game-total-bar">
+      <div class="game-total-header">📊 本局积分</div>
+      <div class="game-total-players" id="game-total-players"></div>
+    </div>
+
+    <!-- 选择当前盘数 -->
+    <div class="round-selector">
+      <label>当前盘数</label>
+      <select id="round-select">
+        <option value="1">第 1 盘</option>
+        <option value="2">第 2 盘</option>
+        <option value="3">第 3 盘</option>
+        <option value="4">第 4 盘</option>
+        <option value="5">第 5 盘</option>
+      </select>
+    </div>
+
+    <!-- 输入表格 -->
+    <div class="input-section">
+      <table class="input-table">
+        <thead>
+          <tr>
+            <th>玩家</th>
+            <th>积分</th>
+          </tr>
+        </thead>
+        <tbody id="score-input-body">
+          <!-- JS动态生成 -->
+        </tbody>
+      </table>
+      <div class="sum-check" id="sum-check">总和: 0</div>
+    </div>
+
+    <!-- 已录入的盘数列表 -->
+    <div class="rounds-section">
+      <h3>已录入盘数</h3>
+      <div id="rounds-list" class="rounds-list"></div>
+      <button class="btn btn-complete" id="btn-complete-round">本局完成</button>
+    </div>
+  </section>
+
+  <!-- ========== 玩家管理页 ========== -->
+  <section id="tab-players" class="tab-content">
+    <div class="add-player-section">
+      <div class="add-player-form">
+        <input type="text" id="new-player-name" placeholder="输入玩家昵称" maxlength="10">
+        <button class="btn btn-add" id="btn-add-player">添加</button>
+      </div>
+      <div class="player-count">当前玩家: <span id="player-count">0</span> 人</div>
+    </div>
+
+    <div class="players-management">
+      <ul id="players-list" class="players-list-ui"></ul>
+    </div>
+
+    <button class="btn btn-danger btn-reset-all" id="btn-reset-all">重置全部</button>
+  </section>
+
+  <!-- ========== 统计页 ========== -->
+  <section id="tab-summary" class="tab-content">
+    <!-- 积分榜 -->
+    <div class="leaderboard-section">
+      <div class="section-title"><span class="title-icon">🏆</span> 积分榜</div>
+      <div id="leaderboard-list" class="leaderboard-list"></div>
+    </div>
+
+    <!-- 本局详情 -->
+    <div class="game-detail-section">
+      <div class="section-title"><span class="title-icon">📋</span> 本局详情</div>
+      <div id="current-game-detail" class="current-game-detail"></div>
+    </div>
+
+    <!-- 历史记录 -->
+    <div class="history-section">
+      <div class="section-title"><span class="title-icon">📜</span> 历史记录</div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+
+    <button class="btn btn-danger btn-new-game" id="btn-new-game">开始新的一局</button>
+  </section>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
