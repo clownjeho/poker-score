@@ -1,66 +1,54 @@
 #!/usr/bin/env python3
-"""扑克积分计算器服务端——支持多人共享数据"""
+"""
+扑克积分计算器服务端 - Flask 版本
+支持 PythonAnywhere 部署
+"""
 
-import json
 import os
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+import json
+from flask import Flask, request, send_from_directory, jsonify
 
+app = Flask(__name__, static_folder='.')
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'scores.json')
 
+# ===== API 接口 =====
+@app.route('/save', methods=['POST'])
+def save_data():
+    """保存数据到文件"""
+    data = request.get_json()
+    if data is None:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    try:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-class PokerHandler(SimpleHTTPRequestHandler):
-    """扩展 HTTP 服务：GET /load 读取数据，POST /save 写入数据"""
+@app.route('/load', methods=['GET'])
+def load_data():
+    """从文件加载数据"""
+    try:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return jsonify(data)
+        else:
+            return jsonify(None)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    def do_GET(self):
-        if self.path == '/load':
-            self._send_cors_headers()
-            if os.path.exists(DATA_FILE):
-                with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                    data = f.read()
-                self.wfile.write(data.encode('utf-8'))
-            else:
-                self.wfile.write(b'null')
-            return
-        # 其他请求按原样返回静态文件
-        super().do_GET()
+# ===== 静态文件 =====
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
-    def do_POST(self):
-        if self.path == '/save':
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length)
-            # 写入文件
-            with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                f.write(body.decode('utf-8'))
-            self._send_cors_headers()
-            self.wfile.write(b'{"status":"ok"}')
-            return
-        self.send_response(404)
-        self.end_headers()
+@app.route('/<path:filename>')
+def static_files(filename):
+    return send_from_directory('.', filename)
 
-    def do_OPTIONS(self):
-        self._send_cors_headers()
-        self.wfile.write(b'{"status":"ok"}')
-
-    def _send_cors_headers(self):
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-
-
+# ===== 启动 =====
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    addr = ('0.0.0.0', port)
-    server = HTTPServer(addr, PokerHandler)
-    print(f'🎴 扑克积分服务已启动：http://0.0.0.0:{port}')
-    print(f'   📄 本机访问： http://localhost:{port}')
-    print(f'   🌐 局域网访问：http://你的IP:{port}')
-    print(f'   💾 数据文件：{DATA_FILE}')
-    print(f'   (Ctrl+C 停止服务)')
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print('\n服务已停止')
-        server.server_close()
+    app.run(host='0.0.0.0', port=port, debug=True)
