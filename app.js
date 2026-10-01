@@ -434,6 +434,7 @@ function render() {
   renderScoreInput();
   renderRoundsList();
   renderLeaderboard();
+  renderStats();
   renderCurrentGameDetail();
   renderHistory();
 }
@@ -757,6 +758,102 @@ function renderCurrentGameDetail() {
   }
 
   container.innerHTML = html;
+}
+
+function renderStats() {
+  const container = $('#stats-table');
+  if (!container) return;
+
+  const stats = computePlayerStats();
+  const played = stats.filter(s => s.games > 0);
+
+  if (played.length === 0) {
+    container.innerHTML = '<div class="lb-empty">还没有已完成的对局</div>';
+    return;
+  }
+
+  // 排序：胜局数 → 胜率 → 累计积分
+  const ranked = played.sort((a, b) =>
+    (b.wins - a.wins) ||
+    (b.wins / b.games - a.wins / a.games) ||
+    (b.total - a.total));
+
+  let html = `<div class="st-row st-head">
+    <span class="st-name">玩家</span>
+    <span>局数</span>
+    <span>胜平负</span>
+    <span>胜率</span>
+    <span>最长连</span>
+    <span>当前连</span>
+    <span>场均</span>
+    <span>盘胜率</span>
+  </div>`;
+
+  ranked.forEach((s, i) => {
+    const wr = s.games ? s.wins / s.games * 100 : 0;
+    const rw = s.roundsTotal ? s.roundsWon / s.roundsTotal * 100 : 0;
+    const avg = s.games ? s.total / s.games : 0;
+    const num = v => (v > 0 ? '+' : '') + v.toFixed(1);
+    html += `<div class="st-row${s.deleted ? ' st-deleted' : ''}">
+      <span class="st-name">${i === 0 ? '🥇 ' : ''}${escapeHtml(s.name)}</span>
+      <span>${s.games}</span>
+      <span><b class="pos-score">${s.wins}</b>/<i>${s.draws}</i>/<b class="neg-score">${s.losses}</b></span>
+      <span class="st-num ${wr >= 50 ? 'pos-score' : ''}">${Math.round(wr)}%</span>
+      <span class="st-num">${s.bestStreak}</span>
+      <span class="st-num ${s.curStreak > 0 ? 'pos-score' : ''}">${s.curStreak}</span>
+      <span class="st-num ${avg > 0 ? 'pos-score' : avg < 0 ? 'neg-score' : ''}">${num(avg)}</span>
+      <span class="st-num">${Math.round(rw)}%</span>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// 单局（gameHistory 一条）算一次胜负；盘胜负按 roundRecords 统计
+function computePlayerStats() {
+  const games = state.gameHistory || [];
+  const out = {};
+
+  state.players.forEach(p => {
+    out[p.id] = {
+      id: p.id, name: p.name, deleted: !!p.deleted,
+      games: 0, wins: 0, draws: 0, losses: 0, total: 0,
+      firsts: 0, bestStreak: 0, curStreak: 0,
+      roundsTotal: 0, roundsWon: 0
+    };
+  });
+
+  games.forEach(g => {
+    const entries = Object.entries(g.roundScoreSummary || {});
+    const maxScore = entries.length ? Math.max(...entries.map(e => e[1])) : 0;
+
+    entries.forEach(([pid, score]) => {
+      const s = out[pid];
+      if (!s) return;              // 数据里已不存在的玩家 id，跳过
+      s.games++;
+      s.total += score;
+      if (score > 0) {
+        s.wins++;
+        s.curStreak++;
+        if (s.curStreak > s.bestStreak) s.bestStreak = s.curStreak;
+      } else {
+        if (score < 0) s.losses++; else s.draws++;
+        s.curStreak = 0;
+      }
+      if (maxScore > 0 && score === maxScore) s.firsts++;
+    });
+
+    (g.roundRecords || []).forEach(r => {
+      Object.entries(r.scores || {}).forEach(([pid, v]) => {
+        const s = out[pid];
+        if (!s) return;
+        s.roundsTotal++;
+        if (v > 0) s.roundsWon++;
+      });
+    });
+  });
+
+  return Object.values(out);
 }
 
 function renderHistory() {

@@ -1052,3 +1052,51 @@ body {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* ===== 战绩排行（2026-10-01 新增）===== */
+.stats-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stats-table { min-width: 430px; }
+
+.st-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.7fr 1.1fr 0.8fr 0.8fr 0.8fr 0.9fr 0.9fr;
+  gap: 4px;
+  align-items: center;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #cfd8e0;
+}
+
+.st-row.st-head {
+  padding: 4px 10px;
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: #7a8a9a;
+  border-bottom: 1px solid #2a3a4a;
+}
+
+.st-row:not(.st-head) {
+  background: #15202e;
+  border: 1px solid #22303e;
+  border-radius: 8px;
+}
+
+.st-row.st-head + .st-row { margin-top: 8px; }
+.st-row + .st-row:not(.st-head) { margin-top: 4px; }
+
+.st-name {
+  font-weight: 600;
+  color: #e8eef4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-num { font-weight: 600; }
+.st-row i { font-style: normal; color: #7a8a9a; }
+.st-row.st-deleted { opacity: 0.55; }
