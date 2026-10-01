@@ -1269,8 +1269,9 @@ function renderTrend() {
     series.forEach(se => se.pts.push(acc[se.id] || 0));
   });
 
-  // 宽度始终等于卡片宽度（不横向滚动）；点数很多时刻度自动抽稀
-  const cardW = (wrap.clientWidth || (wrap.parentElement && wrap.parentElement.clientWidth) || 340);
+  // 宽度始终等于卡片宽度（不横向滚动）；隐藏状态下取页面容器宽度兜底
+  const visW = (el) => (el && el.clientWidth) || 0;
+  const cardW = visW(wrap) || visW(wrap.parentElement) || visW(document.querySelector('.app')) || 340;
   const W = cardW;
   const H = 190, padL = 38, padR = 26, padT = 14, padB = 26;
   const innerW = W - padL - padR, innerH = H - padT - padB;
@@ -1394,8 +1395,9 @@ function renderRoundTrend() {
   const series = ids.map((id, i) => ({ id: id, name: names[id], color: COLORS[i % COLORS.length], pts: seriesMap[id] }))
     .sort((a, b) => (b.pts[b.pts.length - 1] - a.pts[a.pts.length - 1]));
 
-  // 与页面同宽（不横向滚动）
-  const cardW = (wrap.clientWidth || (wrap.parentElement && wrap.parentElement.clientWidth) || 340);
+  // 与页面同宽（不横向滚动）；隐藏状态下取页面容器宽度兜底
+  const visW2 = (el) => (el && el.clientWidth) || 0;
+  const cardW = visW2(wrap) || visW2(wrap.parentElement) || visW2(document.querySelector('.app')) || 340;
   const W = cardW;
   const H = 190, padL = 38, padR = 26, padT = 14, padB = 26;
   const innerW = W - padL - padR, innerH = H - padT - padB;
