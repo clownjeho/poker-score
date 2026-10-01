@@ -1,4 +1,7 @@
 scores.json
-__pycache__
+archive/
+exports/
+backups/
+__pycache__/
 *.pyc
 .DS_Store

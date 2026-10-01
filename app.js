@@ -27,10 +27,48 @@ function saveToServer() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(state)
+    }).then(r => {
+      if (r.status === 409) {
+        // 其他设备已经写过 → 采用服务端最新版本，不覆盖别人
+        return r.json().then(payload => {
+          if (payload && payload.state) {
+            state = payload.state;
+            state.rev = payload.rev || 0;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            render();
+          }
+          setSyncStatus('已载入其他设备的最新数据', 'sync-warn');
+          toast('其他设备已更新，本地已同步为最新');
+        });
+      }
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json().then(res => {
+        if (res && res.rev) {
+          state.rev = res.rev;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+        setSyncStatus('已同步 ' + ((res && res.server_time) ? res.server_time.slice(11) : ''), 'sync-ok');
+      });
     }).catch(() => {
-      // 服务器未运行（用 python3 -m http.server 时），静默忽略
+      setSyncStatus('离线 · 仅本机保存', 'sync-off');
     });
   } catch (_) {}
+}
+
+function setSyncStatus(text, cls) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'sync-status ' + (cls || '');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
 function loadFromServer() {
@@ -40,14 +78,19 @@ function loadFromServer() {
       if (serverData && serverData.players && serverData.players.length > 0) {
         // 服务端数据有效 → 覆盖本地
         state = serverData;
+        state.rev = serverData.rev || 0;
         // 修复兼容性：给没有 deleted 字段的玩家补上
         state.players.forEach(p => { if (p.deleted === undefined) p.deleted = false; });
-        saveState();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        setSyncStatus('已同步 ' + (serverData.updatedAt ? serverData.updatedAt.replace('T', ' ').slice(11) : ''), 'sync-ok');
         render();
+      } else if (serverData === null && state.players.length > 0) {
+        // 服务端还是空的 → 把本地这份推上去
+        saveToServer();
       }
     })
     .catch(() => {
-      // 服务器未运行，保持本地数据
+      setSyncStatus('离线 · 仅本机保存', 'sync-off');
     });
 }
 
@@ -57,8 +100,9 @@ function defaultState() {
     dealerIndex: 0,       // current dealer index
     currentRound: 1,      // 1-5
     rounds: [],           // [{round, scores: {playerId: value}}]
-    gameHistory: [],      // [{dealerId, roundRecords: [{round, scores}], roundScoreSummary: {playerId: total}}]
-    currentRoundScore: {} // running scores for current round being input
+    gameHistory: [],      // [{dealerId, dealerName, roundRecords, roundScoreSummary, completedAt}]
+    currentRoundScore: {},// running scores for current round being input
+    rev: 0                // 服务端版本号（冲突检测用）
   };
 }
 
@@ -138,6 +182,8 @@ function removePlayer(id) {
   if (!confirm('确定删除该玩家？积分将保留，可随时恢复。')) return;
   const p = state.players.find(x => x.id === id);
   p.deleted = true;
+  // 清掉他当前盘待录入的分数，避免遗留键干扰零和校验
+  delete state.currentRoundScore[id];
   if (state.dealerIndex >= activePlayers.length - 1) {
     state.dealerIndex = 0;
   }
@@ -166,8 +212,12 @@ function setDealer(index) {
 }
 
 // ===== Round Input =====
+// 只统计"当前活跃玩家"的分数 —— 已删除玩家遗留的旧键不再破坏零和校验
 function getSum(scores) {
-  return Object.values(scores).reduce((a, b) => a + (b || 0), 0);
+  const active = new Set(getActivePlayers().map(p => p.id));
+  return Object.entries(scores || {})
+    .filter(([pid]) => active.has(pid))
+    .reduce((a, [, v]) => a + (v || 0), 0);
 }
 
 function isSumZero(scores) {
@@ -235,15 +285,23 @@ function updateSumCheck() {
 
 // Submit current round
 $('#btn-complete-round').addEventListener('click', () => {
-  const scores = state.currentRoundScore;
-
   // 确保庄家积分已计算
   calculateDealerScore();
+
+  // 只取当前活跃玩家的输入（忽略已删除玩家遗留的键）
+  const scores = {};
+  const filled = {};
+  getActivePlayers().forEach(p => {
+    if (p.id in state.currentRoundScore) {
+      scores[p.id] = state.currentRoundScore[p.id];
+      filled[p.id] = true;
+    }
+  });
 
   // 所有闲家必须有输入
   const activePlayers = getActivePlayers();
   const nonDealerPlayers = activePlayers.filter((_, i) => i !== state.dealerIndex);
-  const allNonDealerFilled = nonDealerPlayers.every(p => p.id in scores && scores[p.id] !== undefined);
+  const allNonDealerFilled = nonDealerPlayers.every(p => filled[p.id]);
 
   if (!allNonDealerFilled) {
     alert('请为所有闲家选择积分');
@@ -297,7 +355,8 @@ function completeRound() {
     dealerId: dealer.id,
     dealerName: dealer.name,
     roundRecords: JSON.parse(JSON.stringify(state.rounds)),
-    roundScoreSummary: roundSummary
+    roundScoreSummary: roundSummary,
+    completedAt: new Date().toISOString()
   });
 
   // Update cumulative scores (all players, deleted ones also accumulate)
@@ -307,7 +366,7 @@ function completeRound() {
     }
   });
 
-  alert('本局完成！已统计累计积分。');
+  toast('本局完成，已计入累计积分');
 
   // Switch dealer
   advanceDealer();
@@ -596,18 +655,28 @@ function renderLeaderboard() {
   const sorted = [...state.players].sort((a, b) => (b.cumulativeScore || 0) - (a.cumulativeScore || 0));
   const medals = ['🥇', '🥈', '🥉'];
 
-  container.innerHTML = sorted.map((p, i) => {
-    const score = p.cumulativeScore || 0;
-    const rank = i < 3 ? medals[i] : `#${i + 1}`;
-    const cls = score > 0 ? 'pos-score' : score < 0 ? 'neg-score' : '';
-    return `
-      <div class="lb-item ${score > 0 ? 'item-pos' : score < 0 ? 'item-neg' : 'item-zero'}">
-        <span class="lb-rank">${rank}</span>
-        <span class="lb-name">${escapeHtml(p.name)}</span>
-        <span class="lb-score ${cls}">${score > 0 ? '+' : ''}${score}</span>
-      </div>
-    `;
-  }).join('');
+  // 计算总分
+  const totalScore = sorted.reduce((sum, p) => sum + (p.cumulativeScore || 0), 0);
+
+  container.innerHTML = `
+    <div class="lb-header">
+      <div class="lb-total">总积分: <span class="${totalScore > 0 ? 'pos-score' : totalScore < 0 ? 'neg-score' : ''}">${totalScore}</span></div>
+    </div>
+    <div class="lb-items">
+      ${sorted.map((p, i) => {
+        const score = p.cumulativeScore || 0;
+        const rank = i < 3 ? medals[i] : `#${i + 1}`;
+        const cls = score > 0 ? 'pos-score' : score < 0 ? 'neg-score' : '';
+        return `
+          <div class="lb-item ${score > 0 ? 'item-pos' : score < 0 ? 'item-neg' : 'item-zero'}">
+            <span class="lb-rank">${rank}</span>
+            <span class="lb-name">${escapeHtml(p.name)}</span>
+            <span class="lb-score ${cls}">${score > 0 ? '+' : ''}${score}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 function renderCurrentGameDetail() {
@@ -626,46 +695,65 @@ function renderCurrentGameDetail() {
 
   // 当前局（尚未完成的局）的盘数详情
   if (hasRounds) {
-    const dealer = getActivePlayers()[state.dealerIndex];
-    html += `<div class="gd-header">🎴 庄家：<span>${dealer ? escapeHtml(dealer.name) : '-'}</span></div>`;
+    const activePlayers = getActivePlayers();
+    const dealer = activePlayers[state.dealerIndex];
+    
+    html += `<div class="gd-game-header">
+      <div class="gd-game-title">🎴 当前局 · 庄家：<span class="dealer-name">${dealer ? escapeHtml(dealer.name) : '-'}</span></div>
+    </div>`;
+
+    // 每个盘显示为一行表格
+    html += '<div class="gd-rounds-table">';
+    html += '<div class="gd-table-header">';
+    html += '<span class="gd-col-round">盘</span>';
+    state.players.forEach(p => {
+      html += `<span class="gd-col-player">${escapeHtml(p.name)}</span>`;
+    });
+    html += '<span class="gd-col-total">合计</span>';
+    html += '</div>';
 
     state.rounds.forEach((r, i) => {
-      const scoresHtml = state.players.map(p => {
+      const rowScores = state.players.map(p => r.scores[p.id] || 0);
+      const rowTotal = rowScores.reduce((a, b) => a + b, 0);
+      
+      html += `<div class="gd-table-row">`;
+      html += `<span class="gd-col-round">第${r.round}盘</span>`;
+      state.players.forEach(p => {
         const s = r.scores[p.id] || 0;
         const cls = s > 0 ? 'pos-score' : s < 0 ? 'neg-score' : '';
-        return `<span class="${cls}">${escapeHtml(p.name)} ${s > 0 ? '+' : ''}${s}</span>`;
-      }).join(' <span class="gd-sep">·</span> ');
-
-      html += `<div class="gd-round">
-        <span class="gd-round-label">第 ${r.round} 盘</span>
-        <span class="gd-round-scores">${scoresHtml}</span>
-      </div>`;
+        html += `<span class="gd-col-player ${cls}">${s > 0 ? '+' : ''}${s}</span>`;
+      });
+      const totalCls = rowTotal > 0 ? 'pos-score' : rowTotal < 0 ? 'neg-score' : '';
+      html += `<span class="gd-col-total ${totalCls}">${rowTotal > 0 ? '+' : ''}${rowTotal}</span>`;
+      html += `</div>`;
     });
 
-    // 本局合计
+    // 本局合计行
     const totals = {};
     state.players.forEach(p => {
       totals[p.id] = state.rounds.reduce((sum, r) => sum + (r.scores[p.id] || 0), 0);
     });
-    const totalHtml = state.players.map(p => {
+    const gameTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+    
+    html += '<div class="gd-table-footer">';
+    html += '<span class="gd-col-round">本局</span>';
+    state.players.forEach(p => {
       const s = totals[p.id] || 0;
       const cls = s > 0 ? 'pos-score' : s < 0 ? 'neg-score' : '';
-      return `<span class="gd-total-score ${cls}">${escapeHtml(p.name)} ${s > 0 ? '+' : ''}${s}</span>`;
-    }).join(' <span class="gd-sep">·</span> ');
-
-    html += `<div class="gd-total-line">
-      <span class="gd-total-label">本局合计</span>
-      <span class="gd-total-scores">${totalHtml}</span>
-    </div>`;
+      html += `<span class="gd-col-player ${cls}">${s > 0 ? '+' : ''}${s}</span>`;
+    });
+    const ftCls = gameTotal > 0 ? 'pos-score' : gameTotal < 0 ? 'neg-score' : '';
+    html += `<span class="gd-col-total ${ftCls}">${gameTotal > 0 ? '+' : ''}${gameTotal}</span>`;
+    html += '</div>';
+    html += '</div>';
   }
 
   // 如果还有已完成的局，显示已完成局的信息
   if (hasHistory) {
-    const lastGame = state.gameHistory[state.gameHistory.length - 1];
     if (hasRounds) {
       html += '<div class="gd-divider"></div>';
     }
-    html += `<div class="gd-completed-info">已完成 ${state.gameHistory.length} 局记录，详见下方</div>`;
+    html += `<div class="gd-completed-info">已完成 ${state.gameHistory.length} 局记录，详见下方历史记录</div>`;
   }
 
   container.innerHTML = html;
@@ -680,44 +768,61 @@ function renderHistory() {
     return;
   }
 
-  state.gameHistory.forEach((g, i) => {
+  // 按时间倒序显示（最新的在前面）
+  const reversedHistory = [...state.gameHistory].reverse();
+
+  reversedHistory.forEach((g, i) => {
+    const originalIndex = state.gameHistory.length - 1 - i;
     const div = document.createElement('div');
     div.className = 'history-item';
 
-    let rowsHtml = '';
+    // 表格形式显示每局数据
+    let html = `<div class="gd-game-header">
+      <div class="gd-game-title">📜 第 ${originalIndex + 1} 局 · 庄家：<span class="dealer-name">${escapeHtml(g.dealerName)}</span><span class="gd-game-time">${formatTime(g.completedAt)}</span></div>
+      <button class="round-item-delete" onclick="deleteGameHistory(${originalIndex})">×</button>
+    </div>`;
+
+    html += '<div class="gd-rounds-table">';
+    
+    // 表头
+    html += '<div class="gd-table-header">';
+    html += '<span class="gd-col-round">盘</span>';
+    state.players.forEach(p => {
+      html += `<span class="gd-col-player">${escapeHtml(p.name)}</span>`;
+    });
+    html += '<span class="gd-col-total">合计</span>';
+    html += '</div>';
+
+    // 每盘数据
     g.roundRecords.forEach(r => {
-      const scoresHtml = state.players.map(p => {
+      const rowScores = state.players.map(p => r.scores[p.id] || 0);
+      const rowTotal = rowScores.reduce((a, b) => a + b, 0);
+      
+      html += `<div class="gd-table-row">`;
+      html += `<span class="gd-col-round">第${r.round}盘</span>`;
+      state.players.forEach(p => {
         const s = r.scores[p.id] || 0;
         const cls = s > 0 ? 'pos-score' : s < 0 ? 'neg-score' : '';
-        return `<span class="${cls}">${escapeHtml(p.name)} ${s > 0 ? '+' : ''}${s}</span>`;
-      }).join(' <span class="gd-sep">·</span> ');
-      rowsHtml += `<div class="gd-round">
-        <span class="gd-round-label">第${r.round}盘</span>
-        <span class="gd-round-scores">${scoresHtml}</span>
-      </div>`;
+        html += `<span class="gd-col-player ${cls}">${s > 0 ? '+' : ''}${s}</span>`;
+      });
+      const totalCls = rowTotal > 0 ? 'pos-score' : rowTotal < 0 ? 'neg-score' : '';
+      html += `<span class="gd-col-total ${totalCls}">${rowTotal > 0 ? '+' : ''}${rowTotal}</span>`;
+      html += `</div>`;
     });
 
-    // 该局合计
-    const totalHtml = state.players.map(p => {
+    // 合计行
+    html += '<div class="gd-table-footer">';
+    html += '<span class="gd-col-round">本局</span>';
+    state.players.forEach(p => {
       const s = g.roundScoreSummary[p.id] || 0;
       const cls = s > 0 ? 'pos-score' : s < 0 ? 'neg-score' : '';
-      return `<span class="gd-total-score ${cls}">${escapeHtml(p.name)} ${s > 0 ? '+' : ''}${s}</span>`;
-    }).join(' <span class="gd-sep">·</span> ');
+      html += `<span class="gd-col-player ${cls}">${s > 0 ? '+' : ''}${s}</span>`;
+    });
+    html += '<span class="gd-col-total gd-col-check">✓</span>';
+    html += '</div>';
+    html += '</div>';
 
-    const gameIdx = state.gameHistory.length - i; // 倒数序号
-
-    div.innerHTML = `
-      <div class="history-item-header">
-        第 ${gameIdx} 局 · 庄家：<span>${escapeHtml(g.dealerName)}</span>
-        <button class="round-item-delete" onclick="deleteGameHistory(${i})">×</button>
-      </div>
-      <div class="history-item-rows">${rowsHtml}</div>
-      <div class="gd-total-line history-total-line">
-        <span class="gd-total-label">合计</span>
-        <span class="gd-total-scores">${totalHtml}</span>
-      </div>
-    `;
-
+    div.innerHTML = html;
     list.appendChild(div);
   });
 }
@@ -726,6 +831,15 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// 老记录没有 completedAt → 返回占位，不编造时间
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const p = n => String(n).padStart(2, '0');
+  return ` ${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // ===== Init =====

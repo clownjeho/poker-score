@@ -779,15 +779,46 @@ body {
   gap: 6px;
 }
 
+.lb-header {
+  background: linear-gradient(135deg, #1a2a3a, #253545);
+  border-radius: 10px 10px 0 0;
+  padding: 12px 14px 8px;
+  border: 1.5px solid #2a3a4a;
+  border-bottom: none;
+}
+
+.lb-total {
+  font-size: 14px;
+  color: #7a8a9a;
+  font-weight: 600;
+}
+
+.lb-total span {
+  font-weight: 800;
+  font-size: 16px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+}
+
+.lb-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .lb-item {
   display: flex;
   align-items: center;
   gap: 10px;
   background: #1a2a3a;
-  border-radius: 12px;
   padding: 12px 14px;
   border: 1.5px solid #2a3a4a;
+  border-top: none;
   transition: all 0.15s;
+}
+
+.lb-item:first-child {
+  border-radius: 0 0 10px 10px;
+  border-top: none;
 }
 
 .lb-item.item-pos {
@@ -830,75 +861,89 @@ body {
   border: 1px solid #2a3a4a;
 }
 
-.gd-header {
-  font-size: 13px;
-  color: #7a8a9a;
+.gd-game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid #2a3a4a;
 }
 
-.gd-header span {
-  color: #ffd740;
-  font-weight: 700;
-}
-
-.gd-round {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: baseline;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.gd-round-label {
-  color: #90a0b0;
-  white-space: nowrap;
+.gd-game-title {
+  font-size: 14px;
+  color: #7a8a9a;
   font-weight: 600;
-  min-width: 54px;
 }
 
-.gd-round-scores {
-  color: #c0d0e0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  align-items: baseline;
-}
-
-.gd-sep {
-  color: #3a4a5a;
-  margin: 0 2px;
-}
-
-.gd-total-line {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1.5px dashed #2a3a4a;
-  font-size: 14px;
-}
-
-.gd-total-label {
+.gd-game-title .dealer-name {
   color: #ffd740;
   font-weight: 700;
-  white-space: nowrap;
-  min-width: 54px;
 }
 
-.gd-total-scores {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  align-items: baseline;
+.gd-rounds-table {
+  background: #15202e;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #2a3a4a;
 }
 
-.gd-total-score {
+.gd-table-header,
+.gd-table-row,
+.gd-table-footer {
+  display: grid;
+  grid-template-columns: 50px repeat(auto-fit, minmax(50px, 1fr)) 50px;
+  gap: 4px;
+  padding: 8px 10px;
+  align-items: center;
+  text-align: center;
+}
+
+.gd-table-header {
+  background: #1e3048;
+  font-size: 11px;
+  color: #7a8a9a;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gd-table-row {
+  font-size: 13px;
+  border-bottom: 1px solid rgba(42, 58, 74, 0.5);
+}
+
+.gd-table-row:last-child {
+  border-bottom: none;
+}
+
+.gd-table-footer {
+  background: rgba(255, 215, 64, 0.08);
+  border-top: 1.5px solid #3a4a5a;
+  font-weight: 700;
+}
+
+.gd-col-round {
+  font-size: 12px;
+  color: #90a0b0;
+  font-weight: 600;
+}
+
+.gd-col-player {
   font-size: 14px;
+  font-weight: 600;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+}
+
+.gd-col-total {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a6a7a;
+}
+
+.gd-col-check {
+  color: #81c784;
+  font-size: 16px;
 }
 
 .gd-divider {
@@ -922,7 +967,7 @@ body {
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .history-item {
@@ -932,35 +977,12 @@ body {
   border: 1px solid #2a3a4a;
 }
 
-.history-item-header {
-  font-size: 14px;
-  color: #7a8a9a;
+.history-item .gd-game-header {
   margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #2a3a4a;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
-.history-item-header span {
-  color: #ffd740;
-  font-weight: 700;
-}
-
-.history-item-rows {
-  font-size: 13px;
-  color: #90a0b0;
-  line-height: 1.8;
-}
-
-.history-total-line {
-  margin-top: 8px;
-  padding-top: 8px;
-}
-
-.history-total-line .gd-total-label {
-  font-size: 13px;
+.history-item .gd-rounds-table {
+  margin-top: 10px;
 }
 
 /* ===== Responsive tweaks ===== */
@@ -987,4 +1009,46 @@ body {
 
 .round-item, .history-item, .players-list-ui li {
   animation: fadeIn 0.3s ease;
+}
+
+/* ===== 同步状态 / 提示（2026-10-01 新增）===== */
+.sync-status {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #8fa3b8;
+}
+
+.sync-status.sync-ok { color: #4caf50; }
+.sync-status.sync-warn { color: #ffb300; }
+.sync-status.sync-off { color: #78909c; }
+
+.gd-game-time {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #7a8a9a;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translate(-50%, 12px);
+  max-width: 88vw;
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: rgba(38, 50, 62, 0.96);
+  border: 1px solid #2a3a4a;
+  color: #e0e0e0;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: 999;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
