@@ -393,6 +393,28 @@ function restorePlayer(id) {
   render();
 }
 
+// 调整在场顺序 = 调整做庄轮转顺序（完成一局后庄家顺延到下一位）
+function movePlayer(id, delta) {
+  const active = getActivePlayers();
+  const i = active.findIndex(p => p.id === id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= active.length) return;
+
+  const dealerId = active[state.dealerIndex] ? active[state.dealerIndex].id : null;
+  const a = active[i], b = active[j];
+  const ia = state.players.indexOf(a), ib = state.players.indexOf(b);
+  state.players[ia] = b;
+  state.players[ib] = a;
+
+  // 换序后庄家仍是同一个人
+  if (dealerId) {
+    const k = getActivePlayers().findIndex(p => p.id === dealerId);
+    if (k >= 0) state.dealerIndex = k;
+  }
+  saveState();
+  render();
+}
+
 function setDealer(index) {
   state.dealerIndex = index;
   startNewRound();
@@ -696,7 +718,9 @@ function renderPlayerManagement() {
         </span>
       </div>
       <div class="player-actions">
-        ${!isDealer ? `<button onclick="setDealer(${i})">设为庄家</button>` : ''}
+        ${!isDealer ? `<button onclick="setDealer(${i})">设庄</button>` : ''}
+        ${i > 0 ? `<button onclick="movePlayer('${p.id}',-1)">↑</button>` : ''}
+        ${i < activePlayers.length - 1 ? `<button onclick="movePlayer('${p.id}',1)">↓</button>` : ''}
         <button onclick="renameProfile('${p.id}')">改名</button>
         <button class="del-btn" onclick="removePlayer('${p.id}')">离场</button>
       </div>

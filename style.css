@@ -973,6 +973,13 @@ body {
 .roster-stats { font-size: 13px; color: var(--label-2); font-weight: 400; }
 .player-count { font-size: 13px; color: var(--label-2); }
 
+.order-hint {
+  margin: 4px 4px 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--label-3);
+}
+
 /* 历史 / 本局详情：盘号与表头退后，数字保持 */
 .gd-col-round,
 .gd-table-header .gd-col-player { font-size: 12px; font-weight: 400; color: var(--label-2); }
