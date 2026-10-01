@@ -27,7 +27,7 @@
     <!-- 当前庄家和闲家信息 -->
     <div class="current-info">
       <div class="info-card dealer-card">
-        <span class="info-label">🎴 庄家</span>
+        <span class="info-label">庄家</span>
         <span class="info-name" id="dealer-name">-</span>
       </div>
       <div class="info-card players-card">
@@ -38,7 +38,7 @@
 
     <!-- 本局积分总览 -->
     <div class="game-total-bar">
-      <div class="game-total-header">📊 本局积分</div>
+      <div class="game-total-header">本局积分</div>
       <div class="game-total-players" id="game-total-players"></div>
     </div>
 
@@ -82,30 +82,58 @@
   <section id="tab-players" class="tab-content">
     <div class="add-player-section">
       <div class="add-player-form">
-        <input type="text" id="new-player-name" placeholder="输入玩家昵称" maxlength="10">
+        <input type="text" id="new-player-name" placeholder="输入玩家昵称（同名＝同一人）" maxlength="10">
         <button class="btn btn-add" id="btn-add-player">添加</button>
       </div>
-      <div class="player-count">当前玩家: <span id="player-count">0</span> 人</div>
+      <div class="player-count">在场 <span id="player-count">0</span> 人 · 档案 <span id="roster-count">0</span> 人</div>
     </div>
 
     <div class="players-management">
       <ul id="players-list" class="players-list-ui"></ul>
     </div>
 
-    <button class="btn btn-danger btn-reset-all" id="btn-reset-all">重置全部</button>
+    <div class="section-title roster-title">档案库 · 永久</div>
+    <div class="roster-wrap">
+      <ul id="roster-list" class="players-list-ui roster-list"></ul>
+    </div>
+
+    <button class="btn btn-danger btn-reset-all" id="btn-reset-all">重置本次</button>
   </section>
 
   <!-- ========== 统计页 ========== -->
   <section id="tab-summary" class="tab-content">
-    <!-- 积分榜 -->
+    <!-- 走势（时间维度）-->
+    <div class="trend-section">
+      <div class="section-title">总积分走势 · 按时间</div>
+      <div class="trend-card">
+        <div id="trend-chart" class="trend-chart"></div>
+      </div>
+    </div>
+
+    <!-- 本次积分榜 -->
     <div class="leaderboard-section">
-      <div class="section-title"><span class="title-icon">🏆</span> 积分榜</div>
+      <div class="section-title">本次积分榜</div>
       <div id="leaderboard-list" class="leaderboard-list"></div>
+    </div>
+
+    <!-- 永久总榜 -->
+    <div class="leaderboard-section">
+      <div class="section-title">总排名 · 永久</div>
+      <div class="at-board-wrap">
+        <div id="alltime-board" class="at-board"></div>
+      </div>
+    </div>
+
+    <!-- 查分 -->
+    <div class="lookup-section">
+      <div class="section-title">查分 · 玩家对局</div>
+      <select id="lookup-player" class="lookup-select"></select>
+      <div id="lookup-result" class="lookup-result"></div>
     </div>
 
     <!-- 战绩排行 -->
     <div class="stats-section">
-      <div class="section-title"><span class="title-icon">📈</span> 战绩排行</div>
+      <div class="section-title">总战绩明细 · 永久</div>
       <div class="stats-table-wrap">
         <div id="stats-table" class="stats-table"></div>
       </div>
@@ -123,7 +151,7 @@
       <div id="history-list" class="history-list"></div>
     </div>
 
-    <button class="btn btn-danger btn-new-game" id="btn-new-game">开始新的一局</button>
+    <button class="btn btn-complete btn-new-game" id="btn-new-game">开始新的一局</button>
   </section>
 </div>
 
