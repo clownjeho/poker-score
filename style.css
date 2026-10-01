@@ -1085,7 +1085,7 @@ body {
   margin-right: 5px;
 }
 
-.trend-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 6px; }
+.trend-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0; }
 .trend-svg { display: block; }
 .trend-grid { stroke: rgba(60, 60, 67, 0.12); stroke-width: 1; }
 .trend-zero { stroke: rgba(60, 60, 67, 0.4); stroke-dasharray: 3 3; }

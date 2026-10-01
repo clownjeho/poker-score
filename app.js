@@ -675,6 +675,7 @@ function render() {
   renderLeaderboard();
   renderStats();
   renderSessionStats();
+  renderRoundTrend();
   renderAllTime();
   renderTrend();
   renderPeriodStats();
@@ -1235,6 +1236,8 @@ const lookupSel = document.getElementById('lookup-player');
 if (lookupSel) lookupSel.addEventListener('change', renderLookup);
 
 // ===== 走势图：累计总积分随时间的折线（纯 SVG，无外部依赖）=====
+let trendUnit = 'session';   // 'session' = 按次（同一天算一次），'game' = 按局
+
 function renderTrend() {
   const wrap = document.getElementById('trend-chart');
   if (!wrap) return;
@@ -1254,21 +1257,29 @@ function renderTrend() {
     id: s.id, name: s.name, color: COLORS[i % COLORS.length], pts: []
   }));
 
-  // 逐局累加
+  // 单位：按次（同一天的局算一次）/ 按局
+  const buckets = trendBuckets(log, trendUnit);
+
+  // 逐次（或逐局）累加
   const acc = {};
-  log.forEach(e => {
-    (e.summary || []).forEach(({ id, score }) => { acc[id] = (acc[id] || 0) + score; });
+  buckets.forEach(b => {
+    b.entries.forEach(e => {
+      (e.summary || []).forEach(({ id, score }) => { acc[id] = (acc[id] || 0) + score; });
+    });
     series.forEach(se => se.pts.push(acc[se.id] || 0));
   });
 
-  const W = Math.max(320, log.length * 14 + 44);
-  const H = 190, padL = 38, padR = 12, padT = 14, padB = 26;
+  // 宽度跟随页面：与卡片同宽；只有次数极多才横向滚动
+  const cardW = (wrap.clientWidth || (wrap.parentElement && wrap.parentElement.clientWidth) || 340);
+  const NEED_SCROLL = buckets.length * 38 + 44;
+  const W = Math.max(cardW, NEED_SCROLL);
+  const H = 190, padL = 38, padR = 26, padT = 14, padB = 26;
   const innerW = W - padL - padR, innerH = H - padT - padB;
 
   let maxY = 0, minY = 0;
   series.forEach(se => se.pts.forEach(v => { maxY = Math.max(maxY, v); minY = Math.min(minY, v); }));
   const span = Math.max(10, maxY - minY);
-  const x = i => padL + (log.length === 1 ? innerW / 2 : innerW * i / (log.length - 1));
+  const x = i => padL + (buckets.length === 1 ? innerW / 2 : innerW * i / (buckets.length - 1));
   const y = v => padT + innerH * (1 - (v - minY) / span);
 
   let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="trend-svg">`;
@@ -1281,11 +1292,12 @@ function renderTrend() {
     svg += `<text x="${padL - 6}" y="${(y(t) + 3.5).toFixed(1)}" class="trend-axis" text-anchor="end">${t > 0 ? '+' : ''}${t}</text>`;
   });
 
-  // 时间刻度：首 / 中 / 末
-  const idxs = [...new Set([0, Math.floor((log.length - 1) / 2), log.length - 1])];
+  // 横轴刻度：首 / 中 / 末
+  const idxs = [...new Set([0, Math.floor((buckets.length - 1) / 2), buckets.length - 1])];
   idxs.forEach(i => {
-    const st = shortTime(log[i].at);
-    const label = st === '—' ? `第${i + 1}局` : st.slice(0, 5);
+    const b = buckets[i];
+    const st = shortTime(b.at);
+    const label = b.undated ? '未标' : (st === '—' ? `第${i + 1}次` : st.slice(0, 5));
     svg += `<text x="${x(i).toFixed(1)}" y="${H - 8}" class="trend-axis" text-anchor="middle">${label}</text>`;
     svg += `<line x1="${x(i).toFixed(1)}" y1="${padT}" x2="${x(i).toFixed(1)}" y2="${H - padB}" class="trend-grid"/>`;
   });
@@ -1303,11 +1315,141 @@ function renderTrend() {
     `<span class="trend-key"><i style="background:${se.color}"></i>${escapeHtml(se.name)}</span>`).join('');
 
   wrap.innerHTML = `<div class="trend-legend">${legend}</div><div class="trend-scroll">${svg}</div>
-    <div class="trend-note">共 ${log.length} 局 · 纵向为该玩家累计积分</div>`;
+    <div class="trend-note">共 ${buckets.length} ${trendUnit === 'session' ? '次' : '局'} · ${log.length} 局 · 纵向为该玩家累计积分</div>`;
 
   const sc = wrap.querySelector('.trend-scroll');
-  if (sc) sc.scrollLeft = sc.scrollWidth;   // 默认停在最新一端
+  if (sc && sc.scrollWidth > sc.clientWidth + 1) sc.scrollLeft = sc.scrollWidth;   // 只有需要滚动时才停在最新一端
 }
+
+// 按次聚合：同一天的局算「一次」
+function trendBuckets(log, unit) {
+  const p = n => String(n).padStart(2, '0');
+  if (unit === 'game') {
+    return log.map(e => ({ at: e.at, games: 1, entries: [e] }));
+  }
+  const map = new Map();
+  log.forEach(e => {
+    const d = e.at ? new Date(e.at) : null;
+    const ok = d && !isNaN(d.getTime());
+    const key = ok ? `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` : '__undated__';
+    if (!map.has(key)) map.set(key, { at: ok ? e.at : null, games: 0, entries: [], undated: !ok });
+    const b = map.get(key);
+    b.games++;
+    b.entries.push(e);
+    if (ok) b.at = e.at;
+  });
+  return [...map.values()];
+}
+
+function setTrendUnit(unit) {
+  trendUnit = unit;
+  document.querySelectorAll('.trend-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.unit === unit);
+  });
+  renderTrend();
+}
+
+// ===== 本次（非永久）按盘走势：每个玩家在本次所有盘上的累计盘分 =====
+function sessionRoundBuckets() {
+  const buckets = [];
+  const push = (scores, at) => {
+    buckets.push({
+      label: '第' + (buckets.length + 1) + '盘',
+      at: at || null,
+      deltas: Object.entries(scores || {}).map(([id, score]) => ({ id: id, score: score }))
+    });
+  };
+  (state.gameHistory || []).forEach(g => {
+    (g.roundRecords || []).forEach(r => push(r.scores, g.completedAt));
+  });
+  (state.rounds || []).forEach(r => push(r.scores, null));   // 进行中的盘也算上
+  return buckets;
+}
+
+function renderRoundTrend() {
+  const wrap = document.getElementById('round-trend-chart');
+  if (!wrap) return;
+
+  const buckets = sessionRoundBuckets();
+  if (buckets.length < 2) {
+    wrap.innerHTML = '<div class="lb-empty">本次还没有足够的盘</div>';
+    return;
+  }
+
+  const rosterName = {};
+  (state.roster || []).forEach(r => { rosterName[r.id] = r.name; });
+
+  const ids = [];
+  buckets.forEach(b => b.deltas.forEach(d => { if (!ids.includes(d.id)) ids.push(d.id); }));
+  const names = {}, cum = {}, seriesMap = {};
+  ids.forEach(id => { names[id] = rosterName[id] || id; cum[id] = 0; seriesMap[id] = []; });
+  buckets.forEach(b => {
+    b.deltas.forEach(d => {
+      cum[d.id] = (cum[d.id] || 0) + d.score;
+      if (rosterName[d.id]) names[d.id] = rosterName[d.id];
+    });
+    ids.forEach(id => seriesMap[id].push(cum[id] || 0));
+  });
+
+  const COLORS = ['#007AFF', '#FF3B30', '#34C759', '#FF9500', '#AF52DE', '#30B0C7', '#8E8E93', '#A2845E'];
+  const series = ids.map((id, i) => ({ id: id, name: names[id], color: COLORS[i % COLORS.length], pts: seriesMap[id] }))
+    .sort((a, b) => (b.pts[b.pts.length - 1] - a.pts[a.pts.length - 1]));
+
+  // 与页面同宽；盘数多时才滚动
+  const cardW = (wrap.clientWidth || (wrap.parentElement && wrap.parentElement.clientWidth) || 340);
+  const W = Math.max(cardW, buckets.length * 22 + 44);
+  const H = 190, padL = 38, padR = 26, padT = 14, padB = 26;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+
+  let maxY = 0, minY = 0;
+  series.forEach(se => se.pts.forEach(v => { maxY = Math.max(maxY, v); minY = Math.min(minY, v); }));
+  const span = Math.max(10, maxY - minY);
+  const x = i => padL + (buckets.length === 1 ? innerW / 2 : innerW * i / (buckets.length - 1));
+  const y = v => padT + innerH * (1 - (v - minY) / span);
+
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="trend-svg">`;
+  [minY, minY + span / 2, maxY].forEach(v => {
+    const t = Math.round(v);
+    svg += `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${W - padR}" y2="${y(t).toFixed(1)}" class="trend-grid${t === 0 ? ' trend-zero' : ''}"/>`;
+    svg += `<text x="${padL - 6}" y="${(y(t) + 3.5).toFixed(1)}" class="trend-axis" text-anchor="end">${t > 0 ? '+' : ''}${t}</text>`;
+  });
+  [...new Set([0, Math.floor((buckets.length - 1) / 2), buckets.length - 1])].forEach(i => {
+    svg += `<text x="${x(i).toFixed(1)}" y="${H - 8}" class="trend-axis" text-anchor="middle">${buckets[i].label}</text>`;
+    svg += `<line x1="${x(i).toFixed(1)}" y1="${padT}" x2="${x(i).toFixed(1)}" y2="${H - padB}" class="trend-grid"/>`;
+  });
+  series.forEach(se => {
+    const d = se.pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    svg += `<path d="${d}" class="trend-line" stroke="${se.color}"/>`;
+    const n = se.pts.length - 1;
+    svg += `<circle cx="${x(n).toFixed(1)}" cy="${y(se.pts[n]).toFixed(1)}" r="2.5" fill="${se.color}"/>`;
+  });
+  svg += '</svg>';
+
+  const legend = series.map(se =>
+    `<span class="trend-key"><i style="background:${se.color}"></i>${escapeHtml(se.name)}</span>`).join('');
+
+  wrap.innerHTML = `<div class="trend-legend">${legend}</div><div class="trend-scroll">${svg}</div>
+    <div class="trend-note">本次共 ${buckets.length} 盘 · 纵向为本次累计盘分</div>`;
+
+  const sc = wrap.querySelector('.trend-scroll');
+  if (sc && sc.scrollWidth > sc.clientWidth + 1) sc.scrollLeft = sc.scrollWidth;
+}
+
+// 视口变化时重画（宽度跟随页面）
+let trendLastW = 0;
+let roundTrendLastW = 0;
+window.addEventListener('resize', () => {
+  const el = document.getElementById('trend-chart');
+  if (el) {
+    const w = el.clientWidth;
+    if (Math.abs(w - trendLastW) >= 8) { trendLastW = w; renderTrend(); }
+  }
+  const el2 = document.getElementById('round-trend-chart');
+  if (el2) {
+    const w2 = el2.clientWidth;
+    if (Math.abs(w2 - roundTrendLastW) >= 8) { roundTrendLastW = w2; renderRoundTrend(); }
+  }
+});
 
 // ===== 月度 / 年度统计（按永久账本的时间戳分桶）=====
 let periodMode = 'month';

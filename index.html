@@ -107,6 +107,10 @@
     <div class="trend-section">
       <div class="section-title">总积分走势 · 按时间</div>
       <div class="trend-card">
+        <div class="period-tabs trend-tabs">
+          <button class="period-btn trend-btn active" data-unit="session" onclick="setTrendUnit('session')">按次</button>
+          <button class="period-btn trend-btn" data-unit="game" onclick="setTrendUnit('game')">按局</button>
+        </div>
         <div id="trend-chart" class="trend-chart"></div>
       </div>
     </div>
@@ -162,6 +166,14 @@
       <div class="section-title">本次胜率 · 按盘</div>
       <div class="stats-table-wrap">
         <div id="session-stats" class="stats-table"></div>
+      </div>
+    </div>
+
+    <!-- 本次按盘走势（非永久）-->
+    <div class="trend-section">
+      <div class="section-title">本次走势 · 按盘（非永久）</div>
+      <div class="trend-card">
+        <div id="round-trend-chart" class="trend-chart"></div>
       </div>
     </div>
 
