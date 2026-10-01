@@ -256,6 +256,7 @@ let state = loadState();
 let editingRoundIndex = null; // null = new round, number = editing existing
 let currentStep = 5; // 当前步长（可调）
 const STEP_OPTIONS = [1, 2, 3, 5, 7, 15, 30]; // 可选步长
+let roundsOpen = false; // 已录入盘数是否展开（默认收起，让记分页一屏放完）
 
 // ===== DOM References =====
 const $ = (sel) => document.querySelector(sel);
@@ -285,6 +286,15 @@ $('#round-select').addEventListener('change', (e) => {
   saveState();
   render();
 });
+
+const roundsToggleBtn = document.getElementById('btn-toggle-rounds');
+if (roundsToggleBtn) {
+  roundsToggleBtn.addEventListener('click', () => {
+    roundsOpen = !roundsOpen;
+    roundsToggleBtn.textContent = roundsOpen ? '收起' : '展开';
+    renderRoundsList();
+  });
+}
 
 // ===== Player Management =====
 $('#btn-add-player').addEventListener('click', addPlayer);
@@ -664,8 +674,10 @@ function render() {
   renderRoundsList();
   renderLeaderboard();
   renderStats();
+  renderSessionStats();
   renderAllTime();
   renderTrend();
+  renderPeriodStats();
   renderLookup();
   renderCurrentGameDetail();
   renderHistory();
@@ -847,8 +859,6 @@ function renderScoreInput() {
           <div class="stepper-actions">
             <button class="stepper-btn stepper-minus" onclick="adjustScore('${p.id}', -${currentStep})">−${currentStep}</button>
             <button class="stepper-btn stepper-plus" onclick="adjustScore('${p.id}', ${currentStep})">+${currentStep}</button>
-          </div>
-          <div class="stepper-reset-area">
             <button class="stepper-reset" onclick="adjustScore('${p.id}', 0)">归零</button>
           </div>
         </td>
@@ -864,6 +874,9 @@ function renderScoreInput() {
 
 function renderRoundsList() {
   const list = $('#rounds-list');
+  const countEl = document.getElementById('rounds-count');
+  if (countEl) countEl.textContent = state.rounds.length;
+  if (list) list.classList.toggle('collapsed', !roundsOpen);   // 默认收起，省一屏高度
   list.innerHTML = '';
 
   if (state.rounds.length === 0) {
@@ -1054,15 +1067,13 @@ function renderAllTime() {
   container.innerHTML = html;
 }
 
-function renderStats() {
-  const container = $('#stats-table');
+function renderStatsTable(container, stats, emptyText) {
   if (!container) return;
 
-  const stats = computeAllTimeStats();
   const played = stats.filter(s => s.games > 0);
 
   if (played.length === 0) {
-    container.innerHTML = '<div class="lb-empty">还没有已完成的对局</div>';
+    container.innerHTML = `<div class="lb-empty">${emptyText}</div>`;
     return;
   }
 
@@ -1101,6 +1112,60 @@ function renderStats() {
   });
 
   container.innerHTML = html;
+}
+
+// 永久战绩明细
+function renderStats() {
+  renderStatsTable($('#stats-table'), computeAllTimeStats(), '还没有已完成的对局');
+}
+
+// 本次（当前 session）胜率 —— 口径与永久榜一致：按盘计算，只算本次 gameHistory
+function computeSessionStats() {
+  const out = {};
+  const rosterName = {};
+  (state.roster || []).forEach(r => { rosterName[r.id] = r.name; });
+
+  const touch = (id, name) => {
+    if (!out[id]) out[id] = {
+      id: id, name: rosterName[id] || name || id,
+      games: 0, wins: 0, draws: 0, losses: 0, total: 0,
+      roundsTotal: 0, roundsWon: 0, roundBestStreak: 0, roundCurStreak: 0, roundCur: 0
+    };
+    if (rosterName[id]) out[id].name = rosterName[id];
+    return out[id];
+  };
+
+  (state.gameHistory || []).forEach(g => {
+    Object.entries(g.roundScoreSummary || {}).forEach(([id, score]) => {
+      const s = touch(id);
+      s.games++;
+      s.total += score;
+      if (score > 0) s.wins++;
+      else if (score < 0) s.losses++;
+      else s.draws++;
+    });
+
+    const seq = roundSeqFromGame(g);
+    Object.entries(seq).forEach(([id, arr]) => {
+      const s = touch(id);
+      arr.forEach(v => {
+        s.roundsTotal++;
+        if (v > 0) {
+          s.roundsWon++;
+          s.roundCurStreak++;
+          if (s.roundCurStreak > s.roundBestStreak) s.roundBestStreak = s.roundCurStreak;
+        } else {
+          s.roundCurStreak = 0;
+        }
+      });
+    });
+  });
+
+  return Object.values(out);
+}
+
+function renderSessionStats() {
+  renderStatsTable(document.getElementById('session-stats'), computeSessionStats(), '本次还没有完成的对局');
 }
 
 // 单局胜负的统计逻辑已统一到 computeAllTimeStats()（读永久账本）。
@@ -1242,6 +1307,88 @@ function renderTrend() {
 
   const sc = wrap.querySelector('.trend-scroll');
   if (sc) sc.scrollLeft = sc.scrollWidth;   // 默认停在最新一端
+}
+
+// ===== 月度 / 年度统计（按永久账本的时间戳分桶）=====
+let periodMode = 'month';
+
+function setPeriodMode(mode) {
+  periodMode = mode;
+  document.querySelectorAll('.period-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  renderPeriodStats();
+}
+
+function periodKey(iso, mode) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const p = n => String(n).padStart(2, '0');
+  return mode === 'year' ? String(d.getFullYear()) : `${d.getFullYear()}-${p(d.getMonth() + 1)}`;
+}
+
+function computePeriodStats(mode) {
+  const rosterName = {};
+  (state.roster || []).forEach(r => { rosterName[r.id] = r.name; });
+  const buckets = {};
+
+  (state.allTimeLog || []).forEach(e => {
+    const key = periodKey(e.at, mode) || '未标日期';
+    const b = buckets[key] || (buckets[key] = { key: key, games: 0, per: {} });
+    b.games++;
+    (e.summary || []).forEach(({ id, name, score }) => {
+      const p = b.per[id] || (b.per[id] = { id: id, name: rosterName[id] || name || id, total: 0, rounds: 0, roundWins: 0 });
+      p.total += score;
+      p.rounds += (e.rounds || 0);
+      const seq = e.roundSeq && e.roundSeq[id];
+      if (Array.isArray(seq)) p.roundWins += seq.filter(v => v > 0).length;
+      else p.roundWins += ((e.roundWins && e.roundWins[id]) || 0);
+      if (rosterName[id]) p.name = rosterName[id];
+    });
+  });
+
+  return Object.values(buckets).sort((a, b) => {
+    if (a.key === '未标日期') return 1;    // 无日期的排最后
+    if (b.key === '未标日期') return -1;
+    return a.key < b.key ? 1 : -1;         // 新的在前
+  });
+}
+
+function renderPeriodStats() {
+  const box = document.getElementById('period-stats');
+  if (!box) return;
+
+  const rows = computePeriodStats(periodMode);
+  if (!rows.length) {
+    box.innerHTML = '<div class="lb-empty">还没有对局</div>';
+    return;
+  }
+
+  const dated = rows.filter(r => r.key !== '未标日期').length;
+  let html = '';
+  if (!dated) {
+    html += `<div class="period-note">历史对局没有时间戳，月度/年度要等新记录累积。下面是全部未标日期的记录。</div>`;
+  }
+
+  rows.forEach(b => {
+    const players = Object.values(b.per).sort((a, c) => c.total - a.total);
+    const chips = players.map(p => {
+      const wr = p.rounds ? Math.round(p.roundWins / p.rounds * 100) : 0;
+      const cls = p.total > 0 ? 'pos-score' : p.total < 0 ? 'neg-score' : '';
+      const label = periodMode === 'year' ? `${b.key} 年` : b.key;
+      return `<span class="period-chip" title="${p.rounds} 盘 · 胜率 ${wr}%">
+        <span class="pname">${escapeHtml(p.name)}</span><b class="${cls}">${p.total > 0 ? '+' : ''}${p.total}</b>
+      </span>`;
+    }).join('');
+    const head = b.key === '未标日期' ? `未标日期 · ${b.games} 局` : `${b.key} · ${b.games} 局`;
+    html += `<div class="period-block">
+      <div class="period-head">${head}</div>
+      <div class="period-players">${chips}</div>
+    </div>`;
+  });
+
+  box.innerHTML = html;
 }
 
 function renderHistory() {

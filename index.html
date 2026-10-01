@@ -72,7 +72,9 @@
 
     <!-- 已录入的盘数列表 -->
     <div class="rounds-section">
-      <h3>已录入盘数</h3>
+      <h3>已录入 <span id="rounds-count">0</span>/5 盘
+        <button class="rounds-toggle" id="btn-toggle-rounds">展开</button>
+      </h3>
       <div id="rounds-list" class="rounds-list"></div>
       <button class="btn btn-complete" id="btn-complete-round">本局完成</button>
     </div>
@@ -117,6 +119,18 @@
       </div>
     </div>
 
+    <!-- 月度 / 年度统计 -->
+    <div class="period-section">
+      <div class="section-title">月度 / 年度统计</div>
+      <div class="period-card">
+        <div class="period-tabs">
+          <button class="period-btn active" data-mode="month" onclick="setPeriodMode('month')">按月</button>
+          <button class="period-btn" data-mode="year" onclick="setPeriodMode('year')">按年</button>
+        </div>
+        <div id="period-stats" class="period-stats"></div>
+      </div>
+    </div>
+
     <!-- 查分 -->
     <div class="lookup-section">
       <div class="section-title">查分 · 玩家对局</div>
@@ -141,6 +155,14 @@
     <div class="leaderboard-section">
       <div class="section-title">本次积分榜</div>
       <div id="leaderboard-list" class="leaderboard-list"></div>
+    </div>
+
+    <!-- 本次胜率（非永久）-->
+    <div class="stats-section">
+      <div class="section-title">本次胜率 · 按盘</div>
+      <div class="stats-table-wrap">
+        <div id="session-stats" class="stats-table"></div>
+      </div>
     </div>
 
     <!-- 本局详情 -->
