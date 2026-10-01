@@ -98,23 +98,15 @@
       <ul id="roster-list" class="players-list-ui roster-list"></ul>
     </div>
 
-    <button class="btn btn-danger btn-reset-all" id="btn-reset-all">重置本次</button>
-  </section>
+    <!-- ===== 永久积分统计（全部永久模块都在这页）===== -->
+    <div class="section-title roster-title">永久积分统计</div>
 
-  <!-- ========== 统计页 ========== -->
-  <section id="tab-summary" class="tab-content">
     <!-- 走势（时间维度）-->
     <div class="trend-section">
       <div class="section-title">总积分走势 · 按时间</div>
       <div class="trend-card">
         <div id="trend-chart" class="trend-chart"></div>
       </div>
-    </div>
-
-    <!-- 本次积分榜 -->
-    <div class="leaderboard-section">
-      <div class="section-title">本次积分榜</div>
-      <div id="leaderboard-list" class="leaderboard-list"></div>
     </div>
 
     <!-- 永久总榜 -->
@@ -132,12 +124,23 @@
       <div id="lookup-result" class="lookup-result"></div>
     </div>
 
-    <!-- 战绩排行 -->
+    <!-- 永久战绩明细 -->
     <div class="stats-section">
       <div class="section-title">总战绩明细 · 永久</div>
       <div class="stats-table-wrap">
         <div id="stats-table" class="stats-table"></div>
       </div>
+    </div>
+
+    <button class="btn btn-danger btn-reset-all" id="btn-reset-all">重置本次</button>
+  </section>
+
+  <!-- ========== 统计页 ========== -->
+  <section id="tab-summary" class="tab-content">
+    <!-- 本次积分榜 -->
+    <div class="leaderboard-section">
+      <div class="section-title">本次积分榜</div>
+      <div id="leaderboard-list" class="leaderboard-list"></div>
     </div>
 
     <!-- 本局详情 -->
