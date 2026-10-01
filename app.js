@@ -1269,10 +1269,9 @@ function renderTrend() {
     series.forEach(se => se.pts.push(acc[se.id] || 0));
   });
 
-  // 宽度跟随页面：与卡片同宽；只有次数极多才横向滚动
+  // 宽度始终等于卡片宽度（不横向滚动）；点数很多时刻度自动抽稀
   const cardW = (wrap.clientWidth || (wrap.parentElement && wrap.parentElement.clientWidth) || 340);
-  const NEED_SCROLL = buckets.length * 38 + 44;
-  const W = Math.max(cardW, NEED_SCROLL);
+  const W = cardW;
   const H = 190, padL = 38, padR = 26, padT = 14, padB = 26;
   const innerW = W - padL - padR, innerH = H - padT - padB;
 
@@ -1315,7 +1314,7 @@ function renderTrend() {
     `<span class="trend-key"><i style="background:${se.color}"></i>${escapeHtml(se.name)}</span>`).join('');
 
   wrap.innerHTML = `<div class="trend-legend">${legend}</div><div class="trend-scroll">${svg}</div>
-    <div class="trend-note">共 ${buckets.length} ${trendUnit === 'session' ? '次' : '局'} · ${log.length} 局 · 纵向为该玩家累计积分</div>`;
+    <div class="trend-note">共 ${buckets.length} ${trendUnit === 'session' ? '次' : '局'}${trendUnit === 'session' ? ` · ${log.length} 局` : ''} · 纵向为该玩家累计积分</div>`;
 
   const sc = wrap.querySelector('.trend-scroll');
   if (sc && sc.scrollWidth > sc.clientWidth + 1) sc.scrollLeft = sc.scrollWidth;   // 只有需要滚动时才停在最新一端
@@ -1395,9 +1394,9 @@ function renderRoundTrend() {
   const series = ids.map((id, i) => ({ id: id, name: names[id], color: COLORS[i % COLORS.length], pts: seriesMap[id] }))
     .sort((a, b) => (b.pts[b.pts.length - 1] - a.pts[a.pts.length - 1]));
 
-  // 与页面同宽；盘数多时才滚动
+  // 与页面同宽（不横向滚动）
   const cardW = (wrap.clientWidth || (wrap.parentElement && wrap.parentElement.clientWidth) || 340);
-  const W = Math.max(cardW, buckets.length * 22 + 44);
+  const W = cardW;
   const H = 190, padL = 38, padR = 26, padT = 14, padB = 26;
   const innerW = W - padL - padR, innerH = H - padT - padB;
 
