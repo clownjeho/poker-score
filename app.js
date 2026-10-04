@@ -109,6 +109,27 @@ setInterval(() => {
     .catch(() => {});
 }, 5000);
 
+// ===== 版本自检：服务端代码一换，客户端自动刷新 UI（免手动清缓存）=====
+let buildSeen = null;
+function checkBuild() {
+  fetch('/version?_=' + Date.now(), { cache: 'no-store' })
+    .then(r => (r.ok ? r.json() : null))
+    .then(v => {
+      if (!v || !v.build) return;
+      if (buildSeen === null) { buildSeen = v.build; return; }
+      if (v.build !== buildSeen) {
+        setSyncStatus('发现新版本，正在刷新…', 'sync-warn');
+        setTimeout(() => location.reload(), 600);
+      }
+    })
+    .catch(() => {});
+}
+setInterval(checkBuild, 30000);                                     // 每 30 秒
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkBuild(); });
+  setTimeout(checkBuild, 3000);                                     // 打开页面后自检一次
+}
+
 function setSyncStatus(text, cls) {
   const el = document.getElementById('sync-status');
   if (!el) return;
@@ -972,7 +993,7 @@ function renderLeaderboard() {
   (state.rounds || []).forEach(r => {
     Object.entries(r.scores || {}).forEach(([id, v]) => { pending[id] = (pending[id] || 0) + v; });
   });
-  const live = p => (p.cumulativeScore || 0) + (pending[p.id] || 0);
+  const live = p => (p.cumulativeScore || 0) + (pending[p.id] || 0) + ((state.currentRoundScore || {})[p.id] || 0);
   const sorted = [...state.players].sort((a, b) => live(b) - live(a));
   const medals = null; // iOS 风格：只用名次数字，不用奖牌图形
 

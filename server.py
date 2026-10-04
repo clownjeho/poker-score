@@ -172,6 +172,35 @@ def health():
 
 
 # ===== 启动（本地开发用；PythonAnywhere 走 WSGI，不会执行这段）=====
+
+# ===== 客户端强制刷新：静态资源禁缓存 + 代码指纹 =====
+@app.after_request
+def _no_store(resp):
+    try:
+        pth = (request.path or '/')
+        if pth == '/' or pth.endswith(('.html', '.js', '.css', '.webmanifest')):
+            resp.headers['Cache-Control'] = 'no-store, must-revalidate'
+            resp.headers['Pragma'] = 'no-cache'
+            resp.headers['Expires'] = '0'
+    except Exception:
+        pass
+    return resp
+
+
+@app.route('/version')
+def _version():
+    """返回当前代码指纹。换文件后指纹立刻变化，客户端据此自动刷新 UI。"""
+    import hashlib
+    base = os.path.dirname(os.path.abspath(__file__))
+    h = hashlib.sha1()
+    for f in ('index.html', 'app.js', 'style.css'):
+        try:
+            with open(os.path.join(base, f), 'rb') as fh:
+                h.update(fh.read())
+        except OSError:
+            pass
+    return jsonify({'build': h.hexdigest()[:10]})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
