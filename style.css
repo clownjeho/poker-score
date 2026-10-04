@@ -643,7 +643,7 @@ body {
 
 .at-row {
   display: grid;
-  grid-template-columns: 34px 1.5fr 1fr 0.7fr 0.7fr 0.9fr;
+  grid-template-columns: 34px 1.5fr 1fr 0.7fr 0.9fr;
   gap: 6px;
   align-items: center;
   min-height: 44px;
@@ -788,11 +788,11 @@ body {
 /* ===== 战绩明细表 ===== */
 .stats-table-wrap { background: var(--card); border-radius: var(--radius); overflow-x: auto; }
 
-.stats-table { min-width: 520px; }
+.stats-table { min-width: 420px; }
 
 .st-row {
   display: grid;
-  grid-template-columns: 1.3fr repeat(7, 0.85fr);
+  grid-template-columns: 1.3fr repeat(5, 0.85fr);
   gap: 6px;
   align-items: center;
   min-height: 44px;

@@ -458,7 +458,7 @@ function adjustScore(playerId, delta) {
   }
   calculateDealerScore();
   saveState();
-  renderScoreInput();
+  render();          // 全量重画：记分页与统计页的分数同步实时更新
 }
 
 function calculateDealerScore() {
@@ -1041,9 +1041,9 @@ function renderAllTime() {
     (b.total - a.total) || (b.wins - a.wins) || (b.games - a.games));
   const totalGames = (state.allTimeLog || []).length;
 
-  let html = `<div class="at-meta">累计 ${totalGames} 局 · ${ranked.length} 位玩家 · 胜率按盘计算</div>`;
+  let html = `<div class="at-meta">累计 ${totalGames} 局 · ${ranked.length} 位玩家 · 按盘统计</div>`;
   html += `<div class="at-row at-head">
-    <span>排名</span><span class="at-name">玩家</span><span>总积分</span><span>局数</span><span>盘数</span><span>胜率</span>
+    <span>排名</span><span class="at-name">玩家</span><span>总积分</span><span>盘数</span><span>胜率</span>
   </div>`;
 
   ranked.forEach((s, i) => {
@@ -1053,7 +1053,6 @@ function renderAllTime() {
       <span class="at-rank">${i + 1}</span>
       <span class="at-name">${escapeHtml(s.name)}</span>
       <span class="st-num ${s.total > 0 ? 'pos-score' : s.total < 0 ? 'neg-score' : ''}">${sign(s.total)}</span>
-      <span>${s.games}</span>
       <span>${s.roundsTotal}</span>
       <span class="st-num ${wr >= 50 ? 'pos-score' : ''}">${Math.round(wr)}%</span>
     </div>`;
@@ -1081,23 +1080,19 @@ function renderStatsTable(container, stats, emptyText) {
 
   let html = `<div class="st-row st-head">
     <span class="st-name">玩家</span>
-    <span>局数</span>
-    <span>局胜负</span>
     <span>盘数</span>
     <span>胜率</span>
     <span>盘最长连</span>
     <span>盘当前连</span>
-    <span>局均分</span>
+    <span>盘均分</span>
   </div>`;
 
   ranked.forEach(s => {
     const wr = s.roundsTotal ? s.roundsWon / s.roundsTotal * 100 : 0;
-    const avg = s.games ? s.total / s.games : 0;
+    const avg = s.roundsTotal ? s.total / s.roundsTotal : 0;
     const num = v => (v > 0 ? '+' : '') + v.toFixed(1);
     html += `<div class="st-row">
       <span class="st-name">${escapeHtml(s.name)}</span>
-      <span>${s.games}</span>
-      <span><b class="pos-score">${s.wins}</b>/<i>${s.draws}</i>/<b class="neg-score">${s.losses}</b></span>
       <span>${s.roundsTotal}</span>
       <span class="st-num ${wr >= 50 ? 'pos-score' : ''}">${Math.round(wr)}%</span>
       <span class="st-num">${s.roundBestStreak}</span>
@@ -1487,8 +1482,9 @@ function computePeriodStats(mode) {
 
   (state.allTimeLog || []).forEach(e => {
     const key = periodKey(e.at, mode) || '未标日期';
-    const b = buckets[key] || (buckets[key] = { key: key, games: 0, per: {} });
+    const b = buckets[key] || (buckets[key] = { key: key, games: 0, rounds: 0, per: {} });
     b.games++;
+    b.rounds += (e.rounds || 0);
     (e.summary || []).forEach(({ id, name, score }) => {
       const p = b.per[id] || (b.per[id] = { id: id, name: rosterName[id] || name || id, total: 0, rounds: 0, roundWins: 0 });
       p.total += score;
@@ -1533,7 +1529,7 @@ function renderPeriodStats() {
         <span class="pname">${escapeHtml(p.name)}</span><b class="${cls}">${p.total > 0 ? '+' : ''}${p.total}</b>
       </span>`;
     }).join('');
-    const head = b.key === '未标日期' ? `未标日期 · ${b.games} 局` : `${b.key} · ${b.games} 局`;
+    const head = b.key === '未标日期' ? `未标日期 · ${b.rounds} 盘` : `${b.key} · ${b.rounds} 盘`;
     html += `<div class="period-block">
       <div class="period-head">${head}</div>
       <div class="period-players">${chips}</div>
