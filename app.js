@@ -17,43 +17,97 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  // 异步同步到服务器（不阻塞 UI）
+  localDirty = true;                 // 本地有未提交改动：轮询期间不改写本地
   saveToServer();
 }
 
-function saveToServer() {
+// ===== 并发策略（多人同时记分）=====
+// 写：带 rev 提交；被拒（409）= 别人已写过 → 以服务端为基线，把本地这一局还没提交的盘合并回去，再用新 rev 重试
+// 读：每 5 秒拉一次 /load；服务端更新且本地没有待提交输入 → 静默采用（别人记的分实时出现）
+let localDirty = false;
+let syncing = false;
+
+function mergeServerAndLocal(serverState, payloadRev) {
+  const serverRounds = serverState.rounds || [];
+  const same = (a, b) => JSON.stringify(a && a.scores) === JSON.stringify(b && b.scores);
+  // 保留服务端没有的盘；同盘号但分数不同（两人同时录同一盘）也一律保留，宁可多一条也不丢数据
+  const mine = (state.rounds || []).filter(r =>
+    !serverRounds.some(sr => sr.round === r.round && same(sr, r)));
+  const merged = Object.assign({}, serverState, {
+    rounds: serverRounds.concat(mine),
+    currentRound: state.currentRound,
+    currentRoundScore: state.currentRoundScore,   // 我正在录入的分数不丢
+    dealerIndex: state.dealerIndex,
+    rev: payloadRev
+  });
+  return ensureAllTimeLog(merged);
+}
+
+// 同步过程中的界面刷新绝不能中断同步
+function safeRender() {
+  try { render(); } catch (e) { /* 忽略渲染异常 */ }
+}
+
+async function saveToServer() {
+  if (syncing) return;
+  syncing = true;
   try {
-    fetch(SAVE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state)
-    }).then(r => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const r = await fetch(SAVE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+      });
+
       if (r.status === 409) {
-        // 其他设备已经写过 → 采用服务端最新版本，不覆盖别人
-        return r.json().then(payload => {
-          if (payload && payload.state) {
-            state = payload.state;
-            state.rev = payload.rev || 0;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            render();
-          }
-          setSyncStatus('已载入其他设备的最新数据', 'sync-warn');
-          toast('其他设备已更新，本地已同步为最新');
-        });
+        const payload = await r.json().catch(() => null);
+        if (payload && payload.state) {
+          state = mergeServerAndLocal(payload.state, payload.rev || 0);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          safeRender();
+          setSyncStatus('检测到他人更新，已合并重试', 'sync-warn');
+          toast('其他人也在记分，已自动合并，不会覆盖对方');
+          continue;                                  // 用合并结果 + 新 rev 再提交
+        }
+        throw new Error('conflict');
       }
       if (!r.ok) throw new Error('http ' + r.status);
-      return r.json().then(res => {
-        if (res && res.rev) {
-          state.rev = res.rev;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        }
-        setSyncStatus('已同步 ' + ((res && res.server_time) ? res.server_time.slice(11) : ''), 'sync-ok');
-      });
-    }).catch(() => {
-      setSyncStatus('离线 · 仅本机保存', 'sync-off');
-    });
-  } catch (_) {}
+
+      const res = await r.json().catch(() => ({}));
+      if (res && res.rev) state.rev = res.rev;
+      localDirty = false;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setSyncStatus('已同步 ' + ((res && res.server_time) ? res.server_time.slice(11) : ''), 'sync-ok');
+      return;
+    }
+    setSyncStatus('多次冲突，本机已保存但未同步', 'sync-warn');
+  } catch (e) {
+    setSyncStatus('离线 · 仅本机保存', 'sync-off');
+  } finally {
+    syncing = false;
+  }
 }
+
+// 轮询：多人同时看时分数实时一致；只有本地没有待提交输入时才采用服务端版本
+setInterval(() => {
+  if (typeof document === 'undefined' || document.hidden || syncing || localDirty) return;
+  fetch(LOAD_URL)
+    .then(r => (r.ok ? r.json() : null))
+    .then(s => {
+      if (!s || !s.players || !s.players.length) return;
+      if ((s.rev || 0) <= (state.rev || 0)) return;      // 没有新版本，不动
+      const keepScore = state.currentRoundScore;
+      const keepRound = state.currentRound;
+      state = ensureAllTimeLog(s);
+      state.rev = s.rev || 0;
+      state.currentRoundScore = keepScore;
+      state.currentRound = keepRound;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      safeRender();
+      setSyncStatus('已同步 ' + (s.updatedAt ? s.updatedAt.replace('T', ' ').slice(11) : ''), 'sync-ok');
+    })
+    .catch(() => {});
+}, 5000);
 
 function setSyncStatus(text, cls) {
   const el = document.getElementById('sync-status');
