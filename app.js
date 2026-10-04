@@ -256,7 +256,6 @@ let state = loadState();
 let editingRoundIndex = null; // null = new round, number = editing existing
 let currentStep = 5; // 当前步长（可调）
 const STEP_OPTIONS = [1, 2, 3, 5, 7, 15, 30]; // 可选步长
-let roundsOpen = false; // 已录入盘数是否展开（默认收起，让记分页一屏放完）
 
 // ===== DOM References =====
 const $ = (sel) => document.querySelector(sel);
@@ -286,15 +285,6 @@ $('#round-select').addEventListener('change', (e) => {
   saveState();
   render();
 });
-
-const roundsToggleBtn = document.getElementById('btn-toggle-rounds');
-if (roundsToggleBtn) {
-  roundsToggleBtn.addEventListener('click', () => {
-    roundsOpen = !roundsOpen;
-    roundsToggleBtn.textContent = roundsOpen ? '收起' : '展开';
-    renderRoundsList();
-  });
-}
 
 // ===== Player Management =====
 $('#btn-add-player').addEventListener('click', addPlayer);
@@ -877,7 +867,6 @@ function renderRoundsList() {
   const list = $('#rounds-list');
   const countEl = document.getElementById('rounds-count');
   if (countEl) countEl.textContent = state.rounds.length;
-  if (list) list.classList.toggle('collapsed', !roundsOpen);   // 默认收起，省一屏高度
   list.innerHTML = '';
 
   if (state.rounds.length === 0) {
@@ -924,12 +913,17 @@ function renderLeaderboard() {
     return;
   }
 
-  // 按累计积分从高到低排序
-  const sorted = [...state.players].sort((a, b) => (b.cumulativeScore || 0) - (a.cumulativeScore || 0));
+  // 按累计积分从高到低排序（含进行中的盘 → 统计页实时更新）
+  const pending = {};
+  (state.rounds || []).forEach(r => {
+    Object.entries(r.scores || {}).forEach(([id, v]) => { pending[id] = (pending[id] || 0) + v; });
+  });
+  const live = p => (p.cumulativeScore || 0) + (pending[p.id] || 0);
+  const sorted = [...state.players].sort((a, b) => live(b) - live(a));
   const medals = null; // iOS 风格：只用名次数字，不用奖牌图形
 
   // 计算总分
-  const totalScore = sorted.reduce((sum, p) => sum + (p.cumulativeScore || 0), 0);
+  const totalScore = sorted.reduce((sum, p) => sum + live(p), 0);
 
   container.innerHTML = `
     <div class="lb-header">
@@ -937,7 +931,7 @@ function renderLeaderboard() {
     </div>
     <div class="lb-items">
       ${sorted.map((p, i) => {
-        const score = p.cumulativeScore || 0;
+        const score = live(p);
         const rank = String(i + 1);
         const cls = score > 0 ? 'pos-score' : score < 0 ? 'neg-score' : '';
         return `
@@ -1159,6 +1153,21 @@ function computeSessionStats() {
           s.roundCurStreak = 0;
         }
       });
+    });
+  });
+
+  // 进行中的盘也计入（统计页实时反映正在打的这一局）
+  (state.rounds || []).forEach(r => {
+    Object.entries(r.scores || {}).forEach(([id, v]) => {
+      const s = touch(id);
+      s.roundsTotal++;
+      if (v > 0) {
+        s.roundsWon++;
+        s.roundCurStreak++;
+        if (s.roundCurStreak > s.roundBestStreak) s.roundBestStreak = s.roundCurStreak;
+      } else {
+        s.roundCurStreak = 0;
+      }
     });
   });
 

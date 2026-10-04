@@ -1033,28 +1033,15 @@ body {
 .stepper-reset { padding: 6px 18px; font-size: 14px; }
 .sum-check { padding: 7px 14px; font-size: 13px; }
 
-/* 已录入盘数：内部滚动，不再撑高页面 */
-.rounds-section { margin-top: 10px; }
-.rounds-section h3 { margin: 0 4px 6px; font-size: 12px; }
-.rounds-list { max-height: 116px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.rounds-list.collapsed { display: none; }
-
-.rounds-toggle {
-  float: right;
-  padding: 0 10px;
-  height: 24px;
-  border: none;
-  border-radius: 12px;
-  background: var(--fill);
-  color: var(--blue);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.round-item { min-height: 32px; padding: 5px 14px; }
-.round-item-round { font-size: 14px; }
-.round-item-scores { font-size: 12px; }
-.round-item-delete { width: 26px; height: 26px; border-radius: 13px; font-size: 15px; }
+/* 已录入盘数：常显、不滚动、宽度铺满、字号与上面模块一致 */
+.rounds-section { margin-top: 12px; }
+.rounds-section .btn-complete { margin: 0; }
+.rounds-section h3 { margin: 14px 4px 6px; font-size: 13px; font-weight: 400; color: var(--label-2); }
+.rounds-list { max-height: none; overflow: visible; }
+.round-item { min-height: 44px; padding: 10px 16px; }
+.round-item-round { font-size: 16px; font-weight: 500; }
+.round-item-scores { font-size: 15px; color: var(--label-2); white-space: normal; line-height: 1.35; }
+.round-item-delete { width: 28px; height: 28px; border-radius: 14px; font-size: 16px; flex: 0 0 auto; }
 
 .btn-complete { margin-top: 10px; min-height: 46px; font-size: 16px; }
 
